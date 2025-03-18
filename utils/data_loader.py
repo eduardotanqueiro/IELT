@@ -3,12 +3,13 @@ import sys
 
 from timm.data import Mixup
 from torch.utils.data import DataLoader, RandomSampler, DistributedSampler, SequentialSampler
-from torchvision import transforms
+from torchvision import transforms, datasets
 from torchvision.transforms import InterpolationMode
 
 from settings.setup_functions import get_world_size
 # from dataset import *
 from .dataset import *
+
 
 
 def build_transforms(config):
@@ -87,6 +88,32 @@ def build_loader(config):
 		train_set = OxfordFlowers(root, True, train_transform)
 		test_set = OxfordFlowers(root, False, test_transform)
 		num_classes = 102
+	
+	elif config.data.dataset == 'custom':
+		
+		train_root = os.path.join(config.data.data_root, 'train')
+		test_root = os.path.join(config.data.data_root, 'validation')
+
+		size = config.data.img_size
+
+		train_set = datasets.ImageFolder(root= train_root, transform= transforms.Compose( [
+                                                                            transforms.Resize(size=(size,size)),
+                                                                            transforms.ToTensor(),
+                                                                            transforms.Normalize(
+                                                                                mean=[0.485, 0.456, 0.406],
+                                                                                std=[0.229, 0.224, 0.225] )
+                                                                            ] ), allow_empty=True)
+
+		test_set = datasets.ImageFolder(root=test_root, transform= transforms.Compose( [
+																			transforms.Resize(size=(size,size)),
+																			transforms.ToTensor(),
+																			transforms.Normalize(
+																				mean=[0.485, 0.456, 0.406],
+																				std=[0.229, 0.224, 0.225] )
+																			] ), allow_empty=True)
+
+		num_classes = 38
+
 
 	if config.local_rank == -1:
 		train_sampler = RandomSampler(train_set)

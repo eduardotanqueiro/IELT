@@ -2,7 +2,7 @@ from settings.defaults import _C
 from settings.setup_functions import *
 
 config = _C.clone()
-cfg_file = os.path.join('configs', 'cub.yaml')
+cfg_file = os.path.join('configs', 'custom.yaml')
 # cfg_file = os.path.join('..','configs', 'cub.yaml')
 config = SetupConfig(config, cfg_file)
 config.defrost()
@@ -11,8 +11,9 @@ config.defrost()
 # config.write = True			# comment it to disable all the log writing
 # config.train.checkpoint = True		# comment it to disable saving the checkpoint
 config.misc.exp_name = f'{config.data.dataset}'
-config.misc.log_name = f'IELT'
-config.cuda_visible = '1'
+config.misc.log_name = f'IELT_CUSTOM'
+config.cuda_visible = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0" # ?????? 
 
 # Environment Settings
 config.data.log_path = os.path.join(config.misc.output, config.misc.exp_name, config.misc.log_name

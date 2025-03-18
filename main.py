@@ -39,6 +39,20 @@ def main(config):
 	eval_timer = Timer()
 
 	# Initialize the Tensorboard Writer
+	# torch.cuda.empty_cache()
+	# torch.cuda.init()
+	# ---- #
+	print(f"CUDA AVAILABLE: {torch.cuda.is_available()}")
+	
+	weights = np.load("D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\plant-disease-detection\\src\\ielt\\IELT\\pretrained\\ViT-B_16.npz")
+	
+	# for k in weights.keys():
+	# 	print(f"{k} || {weights[k].shape}")
+
+
+	# exit(0)
+
+	# ---- #
 	writer = None
 	if config.write: writer = SummaryWriter(config.data.log_path)
 
