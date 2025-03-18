@@ -1,6 +1,5 @@
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import AverageMeter, accuracy
-from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from models.build import build_models, freeze_backbone
@@ -44,7 +43,7 @@ def main(config):
 	# ---- #
 	print(f"CUDA AVAILABLE: {torch.cuda.is_available()}")
 	
-	weights = np.load("D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\plant-disease-detection\\src\\ielt\\IELT\\pretrained\\ViT-B_16.npz")
+	weights = np.load("E:\Thesis\IELT\pretrained\ViT-B_16.npz")
 	
 	# for k in weights.keys():
 	# 	print(f"{k} || {weights[k].shape}")
@@ -53,8 +52,6 @@ def main(config):
 	# exit(0)
 
 	# ---- #
-	writer = None
-	if config.write: writer = SummaryWriter(config.data.log_path)
 
 	# Prepare dataset
 	train_loader, test_loader, num_classes, train_samples, test_samples, mixup_fn = build_loader(config)
@@ -93,7 +90,7 @@ def main(config):
 	if config.model.resume:
 		best_acc = load_checkpoint(config, model_without_ddp, optimizer, scheduler, loss_scaler, log)
 		best_epoch = config.start_epoch
-		accuracy, loss = valid(config, model, test_loader, best_epoch, train_accuracy, writer)
+		accuracy, loss = valid(config, model, test_loader, best_epoch, train_accuracy)
 		log.info(f'Epoch {best_epoch:^3}/{config.train.epochs:^3}: Accuracy {accuracy:2.3f}    '
 		         f'BA {best_acc:2.3f}    BE {best_epoch:3}    '
 		         f'Loss {loss:1.4f}    TA {train_accuracy * 100:2.2f}')
@@ -126,13 +123,13 @@ def main(config):
 			train_loader.sampler.set_epoch(epoch)
 		if not config.misc.eval_mode:
 			train_accuracy = train_one_epoch(config, model, criterion, train_loader, optimizer,
-			                                 epoch, scheduler, loss_scaler, mixup_fn, writer)
+			                                 epoch, scheduler, loss_scaler, mixup_fn)
 		train_timer.stop()
 
 		# Eval Function
 		eval_timer.start()
 		if epoch < 5 or (epoch + 1) % config.misc.eval_every == 0 or epoch + 1 == config.train.epochs:
-			accuracy, loss = valid(config, model, test_loader, epoch, train_accuracy, writer)
+			accuracy, loss = valid(config, model, test_loader, epoch, train_accuracy)
 			if config.local_rank in [-1, 0]:
 				if best_acc < accuracy:
 					best_acc = accuracy
@@ -150,8 +147,7 @@ def main(config):
 		pass  # Train
 
 	# Finish Training
-	if writer is not None:
-		writer.close()
+
 	train_time = train_timer.sum / 60
 	eval_time = eval_timer.sum / 60
 	total_time = train_time + eval_time
@@ -163,7 +159,7 @@ def main(config):
 
 
 def train_one_epoch(config, model, criterion, train_loader, optimizer, epoch, scheduler, loss_scaler,
-                    mixup_fn=None, writer=None):
+                    mixup_fn=None):
 	model.train()
 	optimizer.zero_grad()
 
@@ -213,11 +209,6 @@ def train_one_epoch(config, model, criterion, train_loader, optimizer, epoch, sc
 		loss_meter.update(loss.item(), y.size(0))
 
 		lr = optimizer.param_groups[0]['lr']
-		if writer:
-			writer.add_scalar("train/loss", loss_meter.val, global_step)
-			writer.add_scalar("train/lr", lr, global_step)
-			writer.add_scalar("train/grad_norm", norm_meter.val, global_step)
-			writer.add_scalar("train/scaler_meter", scaler_meter.val, global_step)
 
 		# set_postfix require dic input
 		p_bar.set_postfix(loss="%2.5f" % loss_meter.avg, lr="%.5f" % lr, gn="%1.4f" % norm_meter.avg)
@@ -238,7 +229,7 @@ def loss_in_iters(output, targets, criterion):
 
 
 @torch.no_grad()
-def valid(config, model, test_loader, epoch=-1, train_acc=0.0, writer=None):
+def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 	criterion = torch.nn.CrossEntropyLoss()
 	model.eval()
 
@@ -273,10 +264,7 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0, writer=None):
 		pass
 
 	p_bar.close()
-	if writer:
-		writer.add_scalar("test/accuracy", acc_meter.avg, epoch + 1)
-		writer.add_scalar("test/loss", loss_meter.avg, epoch + 1)
-		writer.add_scalar("test/train_acc", train_acc * 100, epoch + 1)
+
 	return acc_meter.avg, loss_meter.avg
 
 
