@@ -10,7 +10,44 @@ from settings.setup_functions import get_world_size
 # from dataset import *
 from .dataset import *
 
+ROOT_NEW_80_20_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\split_80_20\\validation"
+ROOT_NEW_80_20_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\split_80_20\\train"
 
+ROOT_NEW_70_30_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\split_70_30\\train"
+ROOT_NEW_70_30_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\split_70_30\\validation"
+
+ROOT_NEW_60_40_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\split_60_40\\train"
+ROOT_NEW_60_40_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\split_60_40\\validation"
+
+ROOT_NEW_AUG_80_20_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_split_80_20\\train"
+ROOT_NEW_AUG_80_20_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_split_80_20\\validation"
+
+ROOT_NEW_AUG_70_30_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_split_70_30\\train"
+ROOT_NEW_AUG_70_30_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_split_70_30\\validation"
+
+ROOT_NEW_AUG_PARTIAL_80_20_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_partial_split_80_20\\train"
+ROOT_NEW_AUG_PARTIAL_80_20_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_partial_split_80_20\\validation"
+
+ROOT_NEW_AUG_PARTIAL_70_30_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_partial_split_70_30\\train"
+ROOT_NEW_AUG_PARTIAL_70_30_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\augmented_partial_split_70_30\\validation"
+
+ROOT_NEW_CLASS_AUG_SPLIT_80_20_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\class_augmented_split_80_20\\train"
+ROOT_NEW_CLASS_AUG_SPLIT_80_20_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\class_augmented_split_80_20\\validation"
+
+ROOT_NEW_CLASS_AUG_SPLIT_70_30_TRAIN = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\class_augmented_split_70_30\\train"
+ROOT_NEW_CLASS_AUG_SPLIT_70_30_VAL = "D:\\OneDrive - Universidade de Coimbra\\Mestrado\\Files\\Tese\\Datasets\\New\\class_augmented_split_70_30\\validation"
+
+
+new_datasets = {"new_80_20": (ROOT_NEW_80_20_TRAIN, ROOT_NEW_80_20_VAL),
+                "new_70_30": (ROOT_NEW_70_30_TRAIN, ROOT_NEW_70_30_VAL),
+                "new_60_40": (ROOT_NEW_60_40_TRAIN, ROOT_NEW_60_40_VAL),
+                "new_aug_80_20": (ROOT_NEW_AUG_80_20_TRAIN, ROOT_NEW_AUG_80_20_VAL),
+                "new_aug_70_30": (ROOT_NEW_AUG_70_30_TRAIN, ROOT_NEW_AUG_70_30_VAL),
+                "new_aug_partial_80_20": (ROOT_NEW_AUG_PARTIAL_80_20_TRAIN, ROOT_NEW_AUG_PARTIAL_80_20_VAL),
+                "new_aug_partial_70_30": (ROOT_NEW_AUG_PARTIAL_70_30_TRAIN, ROOT_NEW_AUG_PARTIAL_70_30_VAL),
+                "new_class_aug_split_80_20": (ROOT_NEW_CLASS_AUG_SPLIT_80_20_TRAIN, ROOT_NEW_CLASS_AUG_SPLIT_80_20_VAL),
+                "new_class_aug_split_70_30": (ROOT_NEW_CLASS_AUG_SPLIT_70_30_TRAIN, ROOT_NEW_CLASS_AUG_SPLIT_70_30_VAL)
+            }
 
 def build_transforms(config):
 	resize = config.data.resize
@@ -91,8 +128,10 @@ def build_loader(config):
 	
 	elif config.data.dataset == 'custom':
 		
-		train_root = os.path.join(config.data.data_root, 'train')
-		test_root = os.path.join(config.data.data_root, 'validation')
+		# train_root = os.path.join(config.data.data_root, 'train')
+		# test_root = os.path.join(config.data.data_root, 'validation')
+		train_root = new_datasets[config.data.data_root][0]
+		test_root = new_datasets[config.data.data_root][1]
 
 		size = config.data.img_size
 
