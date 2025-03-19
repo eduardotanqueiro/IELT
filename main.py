@@ -151,8 +151,8 @@ def objective(trial):
         learning_rate = config.train.lr,
         architecture = "IELT",
         dataset_version = config.data.data_root,
-        num_train = len(train_loader)*config.data.batch_size,
-        num_val = len(test_loader)*config.data.batch_size,
+        num_train = len(train_loader.dataset),
+        num_val = len(test_loader.dataset),
         img_size = config.data.img_size,
     )
 
@@ -216,7 +216,8 @@ def objective(trial):
 
 	with wandb.init(project="Plant-Disease-Detection", config = config_wandb, name= f"{run_id}-IELT") as run:
 
-		# TODO Log Best Metrics
+		# Log Best Metrics
+		best_stats = {"epoch": 0, "acc": 0.0, "spec": 0.0, "recall": 0.0, "prec": 0.0, "f1": 0.0, "loss": 0.0, "inf_time": 0.0, "conf": 0.0}
 
 		wandb.watch(model, optimizer, log= "all", idx = run_id)
 
@@ -237,8 +238,7 @@ def objective(trial):
 			eval_timer.start()
 			if epoch < 5 or (epoch + 1) % config.misc.eval_every == 0 or epoch + 1 == config.train.epochs:
 
-				# TODO Inference Time
-				accuracy, loss, y_preds, y_label, avg_confidence = valid(config, model, test_loader, epoch, train_accuracy)
+				accuracy, loss, y_preds, y_label, avg_confidence, inf_time = valid(config, model, test_loader, epoch, train_accuracy)
 
 				acc, recall, spec, prec, f1, recall_per_class, spec_per_class, prec_per_class, f1_per_class, fig  = cm_plot(y_label, y_preds, labels=[i for i in range(num_classes)] ,per_class=True ,plotit=False)
 				print(f"[VALIDATION] - Loss:{loss:.3f}, Accuracy:{acc:.3f}, Recall:{recall:.3f},:{spec:.3f}, Precision:{prec:.3f}, F1:{f1:.3f}, Inference Time:{inf_time:.7f} s")
@@ -259,6 +259,18 @@ def objective(trial):
 
 				# Optuna Logging
 				trial.report(acc, epoch)
+
+				# Update Best Stats
+				if acc > best_stats["acc"]:
+					best_stats["epoch"] = epoch
+					best_stats["acc"] = acc
+					best_stats["spec"] = spec
+					best_stats["recall"] = recall
+					best_stats["prec"] = prec
+					best_stats["f1"] = f1
+					best_stats["loss"] = loss
+					best_stats["inf_time"] = inf_time
+					best_stats["conf"] = avg_confidence
 
 				# TODO Early Stopping???
 				if trial.should_prune():			
@@ -312,8 +324,10 @@ def objective(trial):
 			eval_timer.stop()
 			pass  # Train
 
-		# Finish Training
-
+		# Finish Training	
+		# Log the final statistics as an individual log
+		wandb.log(best_stats)
+		
 		train_time = train_timer.sum / 60
 		eval_time = eval_timer.sum / 60
 		total_time = train_time + eval_time
@@ -418,6 +432,9 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 	predictions = []
 	labels = []
 
+    # start timer
+	st = time.perf_counter()
+
 	for step, (x, y) in enumerate(test_loader):
 		x, y = x.cuda(non_blocking=True), y.cuda(non_blocking=True)
 
@@ -443,9 +460,13 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 
 		pass
 
+	# end timer
+	et = time.perf_counter() - st
+
 	p_bar.close()
 
-	return acc_meter.avg, loss_meter.avg, predictions, labels, confidence_meter.avg
+
+	return acc_meter.avg, loss_meter.avg, predictions, labels, confidence_meter.avg, (et - st) / len(test_loader.dataset)
 
 
 @torch.no_grad()
