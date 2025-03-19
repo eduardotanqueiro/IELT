@@ -273,6 +273,10 @@ def objective(trial):
 					best_stats["conf"] = avg_confidence
 
 				# TODO Early Stopping???
+				if epoch >= 1 and epoch > best_stats["epoch"] + 5 and acc < best_stats["acc"]:
+					print(f"Early stopping on epoch {epoch+1}")
+					break
+				
 				if trial.should_prune():			
 					wandb.log({"Pruned": True})
 					wandb.finish()
@@ -327,7 +331,7 @@ def objective(trial):
 		# Finish Training	
 		# Log the final statistics as an individual log
 		wandb.log(best_stats)
-		
+
 		train_time = train_timer.sum / 60
 		eval_time = eval_timer.sum / 60
 		total_time = train_time + eval_time
