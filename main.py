@@ -143,7 +143,7 @@ def objective(trial):
 	config.train.lr = trial.suggest_float("lr", 5e-5, 5e-3, log=True)
 
 	# Batch Size
-	config.data.batch_size = trial.suggest_categorical("batch", [8, 16, 32])
+	config.data.batch_size = trial.suggest_categorical("batch_", [8, 16])
 
 	run_id = None
 	with open("last_model_id.txt", "r+") as f:
@@ -262,6 +262,8 @@ def objective(trial):
 				accuracy, loss, y_preds, y_label, avg_confidence, inf_time = valid(config, model, test_loader, epoch, train_accuracy)
 
 				acc, recall, spec, prec, f1, recall_per_class, spec_per_class, prec_per_class, f1_per_class, fig  = cm_plot(y_label, y_preds, labels=[i for i in range(num_classes)] ,per_class=True ,plotit=False)
+				
+				print(f"[TRAIN] - Loss: {train_loss:.3f}, Accuracy {train_accuracy:.3f}")
 				print(f"[VALIDATION] - Loss:{loss:.3f}, Accuracy:{acc:.3f}, Recall:{recall:.3f},:{spec:.3f}, Precision:{prec:.3f}, F1:{f1:.3f}, Inference Time:{inf_time:.7f} s")
 	
 				# Log metrics
@@ -479,7 +481,7 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 		confidence_meter.update(logits.softmax(dim=1).max(dim=1)[0].mean().item(), y.size(0))
 
 		p_bar.set_postfix(acc="{:2.3f}".format(acc_meter.avg), loss="%2.5f" % loss_meter.avg,
-		                  tra="{:2.3f}".format(train_acc * 100), conf="%2.3f" % confidence_meter.avg * 100 )
+		                  tra="{:2.3f}".format(train_acc * 100), conf="%2.3f" % (confidence_meter.avg * 100) )
 		p_bar.update()
 
 		predictions.extend(logits.argmax(dim=1).cpu().numpy())
@@ -530,7 +532,7 @@ if __name__ == '__main__':
         direction="maximize", 
         pruner=optuna.pruners.MedianPruner())
     
-    hours = 1.
+    hours = 0.5
     # study.optimize(objective, n_trials=50, show_progress_bar=True)
     study.optimize(objective, timeout = 3600*hours, show_progress_bar=True)
 
