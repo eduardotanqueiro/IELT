@@ -19,6 +19,11 @@ import numpy as np
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, precision_score
 
+import gc
+
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 def build_model(config, num_classes):
 	model = build_models(config, num_classes)
 	if torch.__version__[0] == 2:
@@ -115,15 +120,30 @@ def objective(trial):
 
 	# ---- #
 
+	# Clear Memory	
+
+	model = None
+
+	print(f"allocated {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+	print(f"reserved {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
+
+	torch.cuda.empty_cache()
+	gc.collect()
+
+	print(f"allocated {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+	print(f"reserved {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
+
 	# --- Optuna Hyperparameter Optimization ---
+	config.defrost()
+
 	# Dataset
 	config.data.data_root = trial.suggest_categorical("data_root", new_datasets.keys())
 
 	# Learning Rate
-	config.train.lr = trial.suggest_loguniform("lr", 5e-5, 5e-3)
+	config.train.lr = trial.suggest_float("lr", 5e-5, 5e-3, log=True)
 
 	# Batch Size
-	config.data.batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64])
+	config.data.batch_size = trial.suggest_categorical("batch", [8, 16, 32])
 
 	run_id = None
 	with open("last_model_id.txt", "r+") as f:
@@ -214,6 +234,7 @@ def objective(trial):
 
 	# Train Function
 
+	# with wandb.init(project="ViT-Pretrained-Demo", config = config_wandb, name= f"{run_id}-IELT") as run:
 	with wandb.init(project="Plant-Disease-Detection", config = config_wandb, name= f"{run_id}-IELT") as run:
 
 		# Log Best Metrics
@@ -401,12 +422,14 @@ def train_one_epoch(config, model, criterion, train_loader, optimizer, epoch, sc
 
 		# set_postfix require dic input
 		p_bar.set_postfix(loss="%2.5f" % loss_meter.avg, lr="%.5f" % lr, gn="%1.4f" % norm_meter.avg)
+		# print(f"loss {loss_meter.avg}")
+
 		p_bar.update()
 
 	# After Training an Epoch
 	p_bar.close()
 	train_accuracy = eval_accuracy(all_preds, all_label, config) if mixup_fn is None else 0.0
-	return loss_meter.avg() , train_accuracy
+	return loss_meter.avg , train_accuracy
 
 
 def loss_in_iters(output, targets, criterion):
@@ -456,7 +479,7 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 		confidence_meter.update(logits.softmax(dim=1).max(dim=1)[0].mean().item(), y.size(0))
 
 		p_bar.set_postfix(acc="{:2.3f}".format(acc_meter.avg), loss="%2.5f" % loss_meter.avg,
-		                  tra="{:2.3f}".format(train_acc * 100), conf="%2.3f".format(confidence_meter.avg * 100) )
+		                  tra="{:2.3f}".format(train_acc * 100), conf="%2.3f" % confidence_meter.avg * 100 )
 		p_bar.update()
 
 		predictions.extend(logits.argmax(dim=1).cpu().numpy())
@@ -470,7 +493,7 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 	p_bar.close()
 
 
-	return acc_meter.avg, loss_meter.avg, predictions, labels, confidence_meter.avg, (et - st) / len(test_loader.dataset)
+	return acc_meter.avg, loss_meter.avg, predictions, labels, confidence_meter.avg * 100, (et - st) / len(test_loader.dataset)
 
 
 @torch.no_grad()
@@ -507,7 +530,7 @@ if __name__ == '__main__':
         direction="maximize", 
         pruner=optuna.pruners.MedianPruner())
     
-    hours = 2
+    hours = 1.
     # study.optimize(objective, n_trials=50, show_progress_bar=True)
     study.optimize(objective, timeout = 3600*hours, show_progress_bar=True)
 
