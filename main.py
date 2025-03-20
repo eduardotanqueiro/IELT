@@ -490,7 +490,7 @@ def valid(config, model, test_loader, epoch=-1, train_acc=0.0):
 		pass
 
 	# end timer
-	et = time.perf_counter() - st
+	et = time.perf_counter()
 
 	p_bar.close()
 
